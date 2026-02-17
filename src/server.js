@@ -67,6 +67,25 @@ app.use('/api/verifications', verificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Setup route - promotes a user to admin (one-time use, protected by secret)
+app.post('/api/setup/make-admin', async (req, res) => {
+  const { phone, secret } = req.body;
+  const SETUP_SECRET = process.env.SETUP_SECRET || 'setup-secret-2024';
+  if (secret !== SETUP_SECRET) return res.status(403).json({ error: 'Invalid secret' });
+  try {
+    const pool = require('./config/database');
+    const result = await pool.query(
+      `UPDATE users SET status = 'active', account_type = 'admin', approved_at = CURRENT_TIMESTAMP
+       WHERE phone_number = $1 RETURNING id, phone_number, status, account_type`,
+      [phone]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 3. Catch-all for undefined routes - (MUST be after other routes)
 app.use((req, res) => {
   res.status(404).json({
