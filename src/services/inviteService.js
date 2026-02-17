@@ -34,7 +34,7 @@ class InviteService {
 
             try {
                 const query = `
-                    INSERT INTO invite_codes (user_id, code, max_uses)
+                    INSERT INTO invite_codes (created_by, code, max_uses)
                     VALUES ($1, $2, $3)
                     RETURNING *
                 `;
@@ -61,7 +61,7 @@ class InviteService {
         // Check if user already has an active invite code
         const query = `
             SELECT * FROM invite_codes
-            WHERE user_id = $1 AND is_active = true
+            WHERE created_by = $1 AND is_active = true
             ORDER BY created_at DESC
             LIMIT 1
         `;
@@ -87,7 +87,7 @@ class InviteService {
                 u.phone_number as inviter_phone,
                 u.status as inviter_status
             FROM invite_codes ic
-            JOIN users u ON ic.user_id = u.id
+            JOIN users u ON ic.created_by = u.id
             WHERE ic.code = $1
         `;
         const result = await pool.query(query, [code.toUpperCase()]);
@@ -176,7 +176,7 @@ class InviteService {
                 WHERE id = $3
             `;
             await client.query(userUpdateQuery, [
-                validation.inviteCode.user_id,
+                validation.inviteCode.created_by,
                 code.toUpperCase(),
                 invitedUserId
             ]);
@@ -208,8 +208,8 @@ class InviteService {
                 COUNT(CASE WHEN u.status = 'active' THEN 1 END) as active_users,
                 COUNT(CASE WHEN u.status = 'pending_approval' THEN 1 END) as pending_users
             FROM invite_codes ic
-            LEFT JOIN users u ON u.invited_by = ic.user_id AND u.invite_code_used = ic.code
-            WHERE ic.user_id = $1
+            LEFT JOIN users u ON u.invited_by = ic.created_by AND u.invite_code_used = ic.code
+            WHERE ic.created_by = $1
             GROUP BY ic.id, ic.code, ic.max_uses, ic.times_used, ic.is_active, ic.created_at
             ORDER BY ic.created_at DESC
         `;
@@ -252,7 +252,7 @@ class InviteService {
             UPDATE invite_codes
             SET is_active = false,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = $1 AND code = $2
+            WHERE created_by = $1 AND code = $2
             RETURNING *
         `;
         const result = await pool.query(query, [userId, code.toUpperCase()]);
