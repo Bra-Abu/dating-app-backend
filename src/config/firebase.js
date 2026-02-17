@@ -2,8 +2,16 @@
 const admin = require('firebase-admin');
 const path = require('path');
 
-// Load the service account key JSON file
-const serviceAccount = require(path.join(__dirname, 'firebase-admin-key.json'));
+let serviceAccount;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  // Production: load from environment variable
+  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+} else {
+  // Local development: load from file
+  const keyPath = path.join(__dirname, '../../serviceAccountKey.json');
+  serviceAccount = require(keyPath);
+}
 
 // Initialize Firebase Admin
 admin.initializeApp({
