@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: dating-app-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+
+databases:
+  - name: dating-app-db
+    databaseName: dating_app
+    user: dating_app_user
