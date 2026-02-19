@@ -330,17 +330,11 @@ class MatchingService {
                 WHERE p.user_id != $1
                     AND u.status = 'active'
                     AND p.moderation_status = 'approved'
-                    AND p.is_active = true
                     AND p.is_complete = true
                     AND p.gender != $2  -- Opposite gender
                     AND p.user_id NOT IN (
                         -- Exclude already interacted with
-                        SELECT CASE
-                            WHEN user_id_1 = $1 THEN user_id_2
-                            WHEN user_id_2 = $1 THEN user_id_1
-                        END
-                        FROM matches
-                        WHERE user_id_1 = $1 OR user_id_2 = $1
+                        SELECT target_user_id FROM matches WHERE user_id = $1
                     )
                     AND p.user_id NOT IN (
                         -- Exclude blocked users
