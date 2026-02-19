@@ -5,7 +5,7 @@ const pool = require('../config/database');
 // General API rate limiter
 const apiLimiter = rateLimit({
     windowMs: parseInt(process.env.API_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-    max: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) || 100, // 100 requests per window
+    max: parseInt(process.env.API_RATE_LIMIT_MAX_REQUESTS) || 500, // 500 requests per window
     message: {
         success: false,
         error: 'Too many requests, please try again later.'
@@ -17,7 +17,7 @@ const apiLimiter = rateLimit({
 // Strict limiter for auth endpoints
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts
+    max: 20, // 20 attempts
     message: {
         success: false,
         error: 'Too many authentication attempts, please try again after 15 minutes.'
