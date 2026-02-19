@@ -553,14 +553,13 @@ class AdminController {
             const updateQuery = `
                 UPDATE profiles
                 SET moderation_status = 'approved',
-                    moderated_by = $1,
-                    moderated_at = CURRENT_TIMESTAMP,
-                    moderation_notes = $2
-                WHERE id = $3
+                    last_moderated_at = CURRENT_TIMESTAMP,
+                    moderation_notes = $1
+                WHERE id = $2
                 RETURNING *
             `;
 
-            const result = await pool.query(updateQuery, [adminId, notes, profileId]);
+            const result = await pool.query(updateQuery, [notes, profileId]);
 
             if (result.rows.length === 0) {
                 return res.status(404).json({
@@ -613,14 +612,14 @@ class AdminController {
             const updateQuery = `
                 UPDATE profiles
                 SET moderation_status = 'rejected',
-                    moderated_by = $1,
-                    moderated_at = CURRENT_TIMESTAMP,
-                    moderation_notes = $2
-                WHERE id = $3
+                    last_moderated_at = CURRENT_TIMESTAMP,
+                    rejection_reason = $1,
+                    moderation_notes = $1
+                WHERE id = $2
                 RETURNING *
             `;
 
-            const result = await pool.query(updateQuery, [adminId, reason, profileId]);
+            const result = await pool.query(updateQuery, [reason, profileId]);
 
             if (result.rows.length === 0) {
                 return res.status(404).json({

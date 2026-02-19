@@ -144,7 +144,7 @@ class AuthController {
                 const newUserResult = await client.query(insertQuery, [
                     uid,
                     phone_number,
-                    'pending_approval', // New users need admin approval
+                    'active', // Auto-approve on registration - profile needs separate approval
                     'user',
                     true // Phone is verified through Firebase
                 ]);
