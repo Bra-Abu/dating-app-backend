@@ -665,7 +665,7 @@ class AdminController {
                     (SELECT COUNT(*) FROM users WHERE status = 'active') as active_users,
                     (SELECT COUNT(*) FROM users WHERE status = 'pending_approval') as pending_users,
                     (SELECT COUNT(*) FROM profiles WHERE is_complete = true) as complete_profiles,
-                    (SELECT COUNT(*) FROM matches WHERE is_mutual_match = true) as total_matches,
+                    (SELECT COUNT(*) FROM matches WHERE is_mutual = true) as total_matches,
                     (SELECT COUNT(*) FROM messages) as total_messages,
                     (SELECT COUNT(*) FROM verifications WHERE status = 'approved') as verified_users,
                     (SELECT COUNT(*) FROM reports WHERE status = 'pending') as pending_reports
@@ -677,8 +677,8 @@ class AdminController {
             // Match rate
             const matchRateQuery = `
                 SELECT
-                    COUNT(DISTINCT user_id_1) + COUNT(DISTINCT user_id_2) as users_with_likes,
-                    COUNT(*) FILTER (WHERE is_mutual_match = true) as mutual_matches
+                    COUNT(DISTINCT user_id) as users_with_likes,
+                    COUNT(*) FILTER (WHERE is_mutual = true) as mutual_matches
                 FROM matches
             `;
             const matchRateResult = await pool.query(matchRateQuery);
