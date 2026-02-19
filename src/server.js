@@ -67,6 +67,28 @@ app.use('/api/verifications', verificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Setup route - creates Firebase email/password account for admin
+app.post('/api/setup/create-admin-email', async (req, res) => {
+  const { email, password, phone, secret } = req.body;
+  const SETUP_SECRET = process.env.SETUP_SECRET || 'setup-secret-2024';
+  if (secret !== SETUP_SECRET) return res.status(403).json({ error: 'Invalid secret' });
+  try {
+    const admin = require('./config/firebase');
+    const pool = require('./config/database');
+    // Create Firebase email/password user
+    const userRecord = await admin.auth().createUser({ email, password, emailVerified: true });
+    // Update admin firebase_uid in DB
+    const result = await pool.query(
+      `UPDATE users SET firebase_uid = $1 WHERE phone_number = $2 AND account_type = 'admin' RETURNING id, phone_number, account_type`,
+      [userRecord.uid, phone]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Admin user not found' });
+    res.json({ success: true, firebaseUid: userRecord.uid, user: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Setup route - promotes a user to admin (one-time use, protected by secret)
 app.post('/api/setup/make-admin', async (req, res) => {
   const { phone, secret } = req.body;
