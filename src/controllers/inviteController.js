@@ -125,33 +125,66 @@ class InviteController {
     }
 
     /**
+     * GET /api/invites/all-codes
+     * Get all invite codes for current user (admin sees all their codes)
+     */
+    async getAllMyCodes(req, res) {
+        try {
+            const userId = req.user.id;
+
+            const result = await pool.query(
+                `SELECT ic.*, u.phone_number as used_by_phone, p.first_name, p.last_name
+                 FROM invite_codes ic
+                 LEFT JOIN users u ON u.invite_code_used = ic.code
+                 LEFT JOIN profiles p ON p.user_id = u.id
+                 WHERE ic.created_by = $1
+                 ORDER BY ic.created_at DESC`,
+                [userId]
+            );
+
+            const codes = result.rows.map(row => ({
+                id: row.id,
+                code: row.code,
+                maxUses: row.max_uses,
+                timesUsed: row.times_used,
+                remainingUses: row.max_uses - row.times_used,
+                isActive: row.is_active,
+                createdAt: row.created_at,
+            }));
+
+            res.json({ success: true, data: codes });
+        } catch (error) {
+            console.error('Error getting all codes:', error);
+            res.status(500).json({ success: false, error: 'Failed to retrieve invite codes' });
+        }
+    }
+
+    /**
      * POST /api/invites/generate
-     * Generate a new invite code for current user
-     * (Admin only or when user's current code is exhausted)
+     * Generate a new invite code.
+     * Admins: always allowed, keeps existing codes active.
+     * Regular users: only when current code is exhausted.
      */
     async generateNewInviteCode(req, res) {
         try {
             const userId = req.user.id;
-            const { maxUses } = req.body;
+            const isAdmin = req.user.account_type === 'admin' || req.user.account_type === 'super_admin';
 
-            // Check if user is admin or has good reason for new code
-            const currentCode = await inviteService.getUserInviteCode(userId);
-
-            // Only generate new code if current is exhausted or user is admin
-            if (currentCode.times_used < currentCode.max_uses && req.user.account_type !== 'admin') {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Your current invite code still has remaining uses'
-                });
-            }
-
-            // Deactivate old code
-            if (currentCode.is_active) {
+            if (!isAdmin) {
+                // Regular users: only generate when current code is exhausted
+                const currentCode = await inviteService.getUserInviteCode(userId);
+                if (currentCode.times_used < currentCode.max_uses) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Your current invite code still has remaining uses'
+                    });
+                }
+                // Deactivate exhausted code and create new one
                 await inviteService.deactivateInviteCode(userId, currentCode.code);
             }
 
-            // Create new code
-            const newCode = await inviteService.createInviteCode(userId, maxUses || 5);
+            // Admins: just create a new code, leave existing ones active
+            const newCode = await inviteService.createInviteCode(userId, 5);
 
             res.json({
                 success: true,
@@ -160,6 +193,7 @@ class InviteController {
                     code: newCode.code,
                     maxUses: newCode.max_uses,
                     timesUsed: newCode.times_used,
+                    remainingUses: newCode.max_uses - newCode.times_used,
                     isActive: newCode.is_active
                 }
             });

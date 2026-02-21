@@ -13,6 +13,7 @@ router.use(verifyToken);
  * @access  Private (authenticated users)
  */
 router.get('/my-code', inviteController.getMyInviteCode);
+router.get('/all-codes', inviteController.getAllMyCodes);
 
 /**
  * @route   POST /api/invites/validate
